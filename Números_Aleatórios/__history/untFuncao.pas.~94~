@@ -1,0 +1,495 @@
+unit untFuncao;
+
+interface
+
+uses System.SysUtils, ShellApi, Winapi.Windows, Classes, Vcl.StdCtrls,
+     Vcl.Forms, Vcl.ComCtrls, Vcl.CheckLst;
+
+type
+  TAbas = (aMegaSena, aLotofacil, aLotomania, aQuina, aConferir, aNone);
+  TArray = array of Integer;
+
+  function ArrayString(S : String; separador : char; iQtdeFinal: Integer): TStringList;
+  function ArrayString2(S : String; separador : char): TStringList;
+  function GeraNumeros(aArray: TArray; iQuantidadeGerar, iValores: Integer; ListComparar: TStringList): TArray;
+  function RetornaValores(sNumeros: string; iQuantidadeGerar: Integer; aArray: TArray): string;
+
+  procedure OrdenaArray(var IntArray: array of integer; const Count: integer);
+  procedure ExecutePrograma(Nome, Parametros: String);
+  procedure Split(const Delimiter: Char; Value: string; const Strings: TStrings);
+  procedure GerarJogo(edtNumeroSair: TEdit; pgbNumero: TProgressbar; chkNumeroSair: TCheckBox; chkListNum: TCheckListBox; mmNumero: TMemo; iValores, iQtdeInicio, iQtdeFinal: Integer; iQuantidadeGerar: Integer = 0; iTotalNumero: Integer = 1; iTotalSair: Integer = 0);
+
+implementation
+
+
+procedure OrdenaArray(var IntArray: array of integer; const Count: integer);
+var pass, K: integer;
+    temp: integer;
+begin
+  for pass := 1 to Count-1 do
+    begin
+      K := pass;
+      temp := IntArray[K];
+      while (K > 0) and (temp < IntArray[K-1]) do
+        begin
+          IntArray[K] := IntArray[K-1];
+          dec(K);
+        end; // while
+      IntArray[K] := temp;
+    end; // for
+end; // OrdenaArray
+
+procedure ExecutePrograma(Nome, Parametros: String);
+var Comando: Array[0..1024] of Char;
+    Parms: Array[0..1024] of Char;
+begin
+  StrPCopy (Comando, Nome);
+  StrPCopy (Parms, Parametros);
+  ShellExecute (0, Nil, Comando, Parms, Nil, SW_SHOWNORMAL);
+end;
+
+procedure Split(const Delimiter: Char; Value: string; const Strings: TStrings);
+begin
+  Assert(Assigned(Strings));
+  Strings.Clear;
+  Strings.DelimitedText := Value;
+  Strings.Delimiter := Delimiter;
+end;
+
+function ArrayString(S : String; separador : char; iQtdeFinal: Integer): TStringList; // entrada de dados //para função “S” recebe string, “separador” recebe caracter de separação da string.
+var conta: integer; // variáveis auxiliares
+    resultado: TStringList; // variáveis auxiliares
+    Saux, sZero: string; // variáveis auxiliares
+begin
+    resultado := TStringList.Create; // inicializa variavel
+    conta := pos(separador,S); //pega posição do separador
+    if conta <> 0 then
+      begin  // verifica se existe o separador caso contrario trata apenas //como uma única linha
+        while Trim(S) <> '' do
+          begin // enquanto S não for nulo executa
+            Saux := Trim(copy(S,1,conta-1)); // Variável Saux recebe primeiro valor
+            delete(S,1,conta); //deleta primeiro valor
+            if conta = 0 then
+              begin //se não ouver mais separador Saux equivale ao resto da //linha
+                Saux := Trim(S);
+                S := '';
+              end;
+            if Length(Saux) > 2 then
+              begin
+                Application.MessageBox(PChar('Valor inválido - ' + Saux + ' !'),
+                                       'Atenção!', MB_OK + MB_ICONQUESTION);
+              end;
+            if Length(Saux) = 2 then
+              begin
+                sZero := copy(Saux, 1, 1);
+                if sZero = '0' then
+                  begin
+                    Saux := copy(Saux, 2, 1);
+                  end;
+              end;
+            if (StrToInt(Saux) >= 1) and (StrToInt(Saux) <= (iQtdeFinal + 1)) then
+              resultado.Add(Saux); // adiciona linhas na string lista
+            conta := pos(separador,S); //pega posição do separador
+          end;
+      end
+    else
+      begin
+        Saux := Trim(S);
+        if Length(Saux) > 2 then
+          begin
+            Application.MessageBox(PChar('Valor inválido - ' + Saux + ' !'),
+                                   'Atenção!', MB_OK + MB_ICONQUESTION);
+          end;
+        if Length(Saux) = 2 then
+          begin
+            sZero := copy(Saux, 1, 1);
+            if sZero = '0' then
+              begin
+                Saux := copy(Saux, 2, 1);
+              end;
+          end;
+        if (StrToInt(Saux) >= 1) and (StrToInt(Saux) <= (iQtdeFinal + 1)) then
+          resultado.Add(Saux);
+      end;
+    Result := resultado; // retorna resultado como uma lista indexada
+end;
+
+function ArrayString2(S : String; separador : char): TStringList;
+var conta, i, iDiminuir: integer;
+    resultado: TStringList;
+    Saux, sZero: string;
+begin
+    resultado := TStringList.Create;
+    S := StringReplace(S,#$D#$A,'-',[rfReplaceAll]);
+    conta := pos(separador,S);
+    if conta <> 0 then
+      begin
+        while Trim(S) <> '' do
+          begin
+            Saux := Trim(copy(S,1,conta-1));
+            delete(S,1,conta);
+            if conta = 0 then
+              begin
+                Saux := Trim(S);
+                S := '';
+              end;
+            if (Length(Saux) > 2) and (Saux <> '100') then
+              begin
+                Application.MessageBox(PChar('Valor inválido - ' + Saux + ' !'),
+                                       'Atenção!', MB_OK + MB_ICONQUESTION);
+              end;
+            if Length(Saux) = 2 then
+              begin
+                sZero := copy(Saux, 1, 1);
+                if sZero = '0' then
+                  begin
+                    Saux := copy(Saux, 2, 1);
+                  end;
+              end;
+            resultado.Add(Saux);
+            conta := pos(separador,S);
+          end;
+      end
+    else
+      begin
+        Saux := Trim(S);
+        if (Length(Saux) > 2) and (Saux <> '100') then
+          begin
+            Application.MessageBox(PChar('Valor inválido - ' + Saux + ' !'),
+                                   'Atenção!', MB_OK + MB_ICONQUESTION);
+          end;
+        if Length(Saux) = 2 then
+          begin
+            sZero := copy(Saux, 1, 1);
+            if sZero = '0' then
+              begin
+                Saux := copy(Saux, 2, 1);
+              end;
+          end;
+        resultado.Add(Saux);
+      end;
+    iDiminuir := 1;
+    for i := 0 to resultado.Count - iDiminuir do
+      begin
+        if resultado.IndexOf('') > -1 then
+          begin
+            resultado.Delete(resultado.IndexOf(''));
+            Inc(iDiminuir);
+          end;
+      end;
+    Result := resultado;
+end;
+
+procedure GerarJogo(edtNumeroSair: TEdit; pgbNumero: TProgressbar; chkNumeroSair: TCheckBox;
+                    chkListNum: TCheckListBox; mmNumero: TMemo; iValores, iQtdeInicio, iQtdeFinal: Integer;
+                    iQuantidadeGerar: Integer = 0; iTotalNumero: Integer = 1; iTotalSair: Integer = 0);
+var i, j, t, iTotalConta: Integer;
+    nums: TArray;
+    sNumeros: string;
+    List, ListComparar, ListEdit: TStringList;
+begin
+  try
+      Randomize;
+      sNumeros := '';
+      if (iTotalNumero > 1000) then
+        begin
+          Application.MessageBox('Quantidade digitada não pode ser maior que 1000(mil)!',
+                                 'Atenção!', MB_OK + MB_ICONQUESTION);
+          Exit;
+        end
+      else if (iTotalNumero < 1) then
+        begin
+          Application.MessageBox('Quantidade digitada não pode ser menor que 1(um)!',
+                                 'Atenção!', MB_OK + MB_ICONQUESTION);
+          Exit;
+        end;
+      if (iTotalSair > iQtdeInicio) then
+        begin
+          Application.MessageBox(PChar('Total de número que mais saíram não pode ser maior que ' + IntToStr(iQtdeInicio) + '!'),
+                                 'Atenção!', MB_OK + MB_ICONQUESTION);
+          Exit;
+        end
+      else if (iTotalNumero < 1) then
+        begin
+          Application.MessageBox('Total de número que mais saíram não pode ser menor que 1(um)!',
+                                 'Atenção!', MB_OK + MB_ICONQUESTION);
+          Exit;
+        end;
+      { Fazendo validação na quantidade de números à ser gerado, caso valor
+        esteja abaixo ou acima do solicitado é mandado uma mensagem para o
+        usuário alertando que o valor escolhido não é aceito }
+      if (iQuantidadeGerar < iQtdeInicio) then
+         begin
+           Application.MessageBox(PChar('Valor digitado não pode ser menor que ' + IntToStr(iQtdeInicio) + '!'),
+                           'Atenção!', MB_OK + MB_ICONQUESTION);
+           Exit;
+         end
+      else if (iQuantidadeGerar > iQtdeFinal) then
+        begin
+          Application.MessageBox(PChar('Valor digitado não pode ser maior que ' + IntToStr(iQtdeFinal) + '!'),
+                           'Atenção!', MB_OK + MB_ICONQUESTION);
+          Exit;
+        end
+      else { passando em todas as validações acima começa o processo de geração }
+        begin
+          try
+            { criando a lista que guarda valores gerados }
+            List := TStringList.Create;
+            { criando lista que compara os valores gerados e retira os repitidos }
+            ListComparar := TStringList.Create;
+            for t := 0 to iTotalNumero - 1 do
+              begin
+                iTotalConta := 0;
+                SetLength(nums, Length(nums) + iQuantidadeGerar);
+                pgbNumero.Max := iQuantidadeGerar;
+                { números que mais saíram }
+                if chkNumeroSair.Checked then
+                  begin
+                    { criando a lista para adicionar os valores que mais saíram }
+                    ListEdit := TStringList.Create;
+                    if Trim(edtNumeroSair.Text) = '' then
+                      begin
+                        Application.MessageBox('Valores que mais sairam devem ser digitado, senão programa não pode proseguir!',
+                                               'Atenção!', MB_OK + MB_ICONQUESTION);
+                        Exit;
+                      end;
+                    try
+                      { passa os valores do edit com os números que mais saíram para
+                        dentro da lista }
+                      ListEdit := ArrayString(edtNumeroSair.Text, ',', iValores);
+                      if ListEdit.Count = 0 then
+                        begin
+                          Application.MessageBox('Não existem valores digitados para a lista dos números que mais saíram!',
+                                                 'Atenção!', MB_OK + MB_ICONQUESTION);
+                          Exit;
+                        end;
+                      if ListEdit.Count < iTotalSair then
+                        begin
+                          Application.MessageBox('Quantidade digitada para a lista dos números que mais' + Chr(13) +
+                                                 ' saíram esta abaixo do total escolhido para sair nos jogos!',
+                                                 'Atenção!', MB_OK + MB_ICONQUESTION);
+                          Exit;
+                        end;
+                      { Gera números que mais sairam }
+                      for i := 0 to iTotalSair - 1 do
+                        begin
+                          if i = 0 then
+                            begin
+                              Repeat
+                                nums[i] := Random(iValores) + 1;
+                              Until (ListEdit.IndexOf(IntToStr(nums[i])) > -1);
+                            end
+                          else
+                            begin
+                              { se caso existir algum valor na lista que ja esta contido
+                                no array o laço se repete até o valor ser diferente }
+                              Repeat
+                                nums[i] := Random(iValores) + 1;
+                              Until ((ListEdit.IndexOf(IntToStr(nums[i])) > -1)
+                                    and not (ListComparar.IndexOf(IntToStr(nums[i])) > -1));
+                            end;
+                          { salvando todos valores gerados no array }
+                          ListComparar.Add(IntToStr(nums[i]));
+                          pgbNumero.Position := i;
+                        end;
+                      { Gerando o restante dos números }
+                      for j := iTotalSair to iQuantidadeGerar - 1 do
+                        begin
+                          { se caso existir algum valor na lista que ja esta contido
+                            no array o laço se repete até o valor ser diferente }
+                          Repeat
+                            nums[j] := Random(iValores) + 1;
+                          Until not (ListComparar.IndexOf(IntToStr(nums[j])) > -1);
+                          { salvando todos valores gerados no array, caso foi
+                            gerado algum valor dos que mais saíram, os valores
+                            estarão contido nessa lista }
+                          ListComparar.Add(IntToStr(nums[j]));
+                          pgbNumero.Position := j;
+                        end;
+                      { Ordenando números }
+                      OrdenaArray(nums, iQuantidadeGerar);
+                      { preparando os números para serem mostrado no memo }
+                      { adiciona os números gerados no memo e adiciona um "ENTER"
+                        também para evitar deixar os valores juntos na hora de
+                        salvar }
+                      mmNumero.Lines.Add(RetornaValores(sNumeros, iQuantidadeGerar, nums) + Chr(13));
+                      pgbNumero.Position := iQuantidadeGerar;
+                      { limpando as listas no caso de ser gerado mais de um jogo,
+                        pois não poderá conter dados nas listas na hora que o laço
+                        retornar ao inicio }
+                      ListEdit.Clear;
+                      ListComparar.Clear;
+                      { limpando a variavel de números }
+                      sNumeros := '';
+                      { diminuindo as casas do array para não sobrecarregar a
+                        memória com valores à mais do que será usado pelo sistema }
+                      SetLength(nums, Length(nums) - iQuantidadeGerar);
+                    finally
+                      { elimina a lista dos valores do edit aqui, pois só será
+                        usado nessa parte }
+                      FreeAndNil(ListEdit);
+                    end;
+                  end
+                else
+                  begin
+                    { Verificando o total de números checados }
+                    for i := 0 to chkListNum.Items.Count - 1 do
+                      begin
+                        if chkListNum.Checked[i] = True then
+                          begin
+                            Inc(iTotalConta);
+                          end;
+                      end;
+                    { se não existir números marcados então segue gerando
+                      aleatóriamente sem excluir nenhum número da lista }
+                    if iTotalConta = 0 then
+                      begin
+                        { Gerando os números e ordenando os valores e ja
+                          adicionando os mesmos dentro do memo }
+                        mmNumero.Lines.Add(RetornaValores(sNumeros, iQuantidadeGerar, GeraNumeros(nums, iQuantidadeGerar, iValores, ListComparar)) + Chr(13));
+                        pgbNumero.Position := iQuantidadeGerar;
+
+                        ListComparar.Clear;
+                        sNumeros := '';
+                        SetLength(nums, Length(nums) - iQuantidadeGerar);
+                      end
+                    else
+                      begin
+                        if (iValores - iTotalConta) < iQtdeInicio then
+                          begin
+                            Application.MessageBox(PChar('Valores insuficientes, desmarque pelo menos ' + IntToStr(iQtdeInicio) + ' números da lista de exclusão!'),
+                                                   'Atenção!', MB_OK + MB_ICONQUESTION);
+                            Exit;
+                          end
+                        else if (iValores - iTotalConta) = iQtdeInicio then
+                          begin
+                            j := 0;
+                            { Pegando valores não checado }
+                            for i := 0 to chkListNum.Items.Count - 1 do
+                              begin
+                                if chkListNum.Checked[i] = False then
+                                  begin
+                                    nums[j] := StrToInt(Trim(chkListNum.Items.Strings[i]));
+                                    Inc(j);
+                                  end;
+                                pgbNumero.Position := i;
+                              end;
+                            { Ordenando números }
+                            OrdenaArray(nums, iQuantidadeGerar);
+                            mmNumero.Lines.Add(RetornaValores(sNumeros, iQuantidadeGerar, nums) + Chr(13));
+                            pgbNumero.Position := iQuantidadeGerar;
+                            Exit;
+                          end
+                        else
+                          begin
+                            { Pegando os valores checados }
+                            for i := 0 to chkListNum.Items.Count - 1 do
+                              begin
+                                if chkListNum.Checked[i] = True then
+                                  begin
+                                    List.Add(Trim(chkListNum.Items.Strings[i]));
+                                  end;
+                                pgbNumero.Position := i;
+                              end;
+                            { Gerando os números sem os valores checados }
+                            for i := 0 to iQuantidadeGerar - 1 do
+                              begin
+                                if i = 0 then
+                                  begin
+                                    Repeat
+                                      nums[i] := Random(iValores) + 1;
+                                    Until not (List.IndexOf(IntToStr(nums[i])) > -1);
+                                  end
+                                else
+                                  begin
+                                      Repeat
+                                        nums[i] := Random(iValores) + 1;
+                                      Until not (List.IndexOf(IntToStr(nums[i])) > -1)
+                                            and not (ListComparar.IndexOf(IntToStr(nums[i])) > -1);
+                                  end;
+                                ListComparar.Add(IntToStr(nums[i]));
+                                pgbNumero.Position := i;
+                              end;
+                            { Ordenando números }
+                            OrdenaArray(nums, iQuantidadeGerar);
+                            mmNumero.Lines.Add(RetornaValores(sNumeros, iQuantidadeGerar, nums) + Chr(13));
+                            pgbNumero.Position := iQuantidadeGerar;
+
+                            List.Clear;
+                            ListComparar.Clear;
+                            sNumeros := '';
+                            SetLength(nums, Length(nums) - iQuantidadeGerar);
+                          end;
+                      end;
+                  end;
+              end;
+          finally
+             FreeAndNil(List);
+             FreeAndNil(ListComparar);
+          end;
+        end;
+  except
+    Application.MessageBox('Erro durante a geração dos números, avise o técnico - Denis / Celular: 991787120',
+                           'Atenção!', MB_OK + MB_ICONQUESTION);
+  end;
+end;
+
+function GeraNumeros(aArray: TArray; iQuantidadeGerar, iValores: Integer; ListComparar: TStringList): TArray;
+var i: Integer;
+begin
+  try
+    try
+      { Gerando os números }
+      for i := 0 to iQuantidadeGerar - 1 do
+        begin
+          if i = 0 then
+            begin
+              aArray[i] := Random(iValores) + 1;
+            end
+          else
+            begin
+              begin
+                Repeat
+                  aArray[i] := Random(iValores) + 1;
+                Until not (ListComparar.IndexOf(IntToStr(aArray[i])) > -1);
+              end;
+            end;
+          ListComparar.Add(IntToStr(aArray[i]));
+        end;
+      { Ordenando números }
+      OrdenaArray(aArray, iQuantidadeGerar);
+    except
+      { ------------- }
+    end;
+  finally
+    Result := aArray;
+  end;
+end;
+
+function RetornaValores(sNumeros: string; iQuantidadeGerar: Integer; aArray: TArray): string;
+var i: Integer;
+begin
+  try
+    for i := 0 to iQuantidadeGerar - 1 do
+      begin
+        if i = 0 then
+          begin
+            if Length(IntToStr(aArray[i])) < 2 then
+              sNumeros := sNumeros + '0' + IntToStr(aArray[i])
+            else
+              sNumeros := sNumeros + IntToStr(aArray[i]);
+          end
+        else
+          begin
+            if Length(IntToStr(aArray[i])) < 2 then
+              sNumeros := sNumeros + '-0' + IntToStr(aArray[i])
+            else
+              sNumeros := sNumeros + '-' + IntToStr(aArray[i])
+          end;
+      end;
+  finally
+    Result := sNumeros;
+  end;
+end;
+
+end.
